@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
@@ -58,7 +59,15 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 
 	(*requestConfig).Url = fmt.Sprintf("%s://%s%s?%s", _url.Scheme, _url.Host, _url.Path, query.Encode())
 
-	return service.httpService.HttpRequest(requestConfig)
+	req, r, e := service.httpService.HttpRequest(requestConfig)
+	if r.StatusCode == http.StatusTooManyRequests {
+		fmt.Println("waiting 10 seconds...")
+		time.Sleep(10 * time.Second)
+
+		return service.httpRequest(requestConfig)
+	}
+
+	return req, r, e
 }
 
 func (service *Service) ApiName() string {
