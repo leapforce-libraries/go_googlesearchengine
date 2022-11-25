@@ -9,8 +9,9 @@ import (
 )
 
 type CustomSearchConfig struct {
-	Cx string
-	Q  string
+	Cx     string
+	Fields *string
+	Q      string
 }
 
 type CustomSearchResult struct {
@@ -37,6 +38,9 @@ func (service *Service) CustomSearch(cfg *CustomSearchConfig) (*CustomSearchResu
 	var values = url.Values{}
 
 	values.Set("cx", cfg.Cx)
+	if cfg.Fields != nil {
+		values.Set("fields", *cfg.Fields)
+	}
 	values.Set("q", cfg.Q)
 
 	var result CustomSearchResult
