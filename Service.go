@@ -14,8 +14,9 @@ const (
 )
 
 type Service struct {
-	apiKey      string
-	httpService *go_http.Service
+	apiKey        string
+	httpService   *go_http.Service
+	errorResponse *ErrorResponse
 }
 
 type ServiceConfig struct {
@@ -55,9 +56,20 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 	query := _url.Query()
 	query.Set("key", service.apiKey)
 
+	// add error model
+	service.errorResponse = &ErrorResponse{}
+	requestConfig.ErrorModel = service.errorResponse
+
 	(*requestConfig).Url = fmt.Sprintf("%s://%s%s?%s", _url.Scheme, _url.Host, _url.Path, query.Encode())
 
-	return service.httpService.HttpRequest(requestConfig)
+	request, response, e := service.httpService.HttpRequest(requestConfig)
+	if e != nil {
+		if service.errorResponse.Error.Message != "" {
+			e.SetMessage(service.errorResponse.Error.Message)
+		}
+	}
+
+	return request, response, e
 }
 
 func (service *Service) ApiName() string {
@@ -74,4 +86,8 @@ func (service *Service) ApiCallCount() int64 {
 
 func (service *Service) ApiReset() {
 	service.httpService.ResetRequestCount()
+}
+
+func (service *Service) ErrorResponse() *ErrorResponse {
+	return service.errorResponse
 }
