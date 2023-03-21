@@ -6,11 +6,14 @@ import (
 	go_http "github.com/leapforce-libraries/go_http"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 const (
-	apiName string = "GoogleSearchEngine"
-	apiURL  string = "https://customsearch.googleapis.com"
+	apiName    string = "GoogleSearchEngine"
+	apiURL     string = "https://customsearch.googleapis.com"
+	maxRetries int    = 3
+	retryAfter int    = 10
 )
 
 type Service struct {
@@ -62,7 +65,19 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 
 	(*requestConfig).Url = fmt.Sprintf("%s://%s%s?%s", _url.Scheme, _url.Host, _url.Path, query.Encode())
 
+	var retry = 0
+	var retryAfter_ = retryAfter
+retry:
 	request, response, e := service.httpService.HttpRequest(requestConfig)
+	if response.StatusCode == http.StatusTooManyRequests && retry < maxRetries {
+		fmt.Printf("waiting %v seconds...\n", retryAfter_)
+		time.Sleep(time.Duration(retryAfter_) * time.Second)
+
+		retry++
+		retryAfter_ = retryAfter_ * 2
+
+		goto retry
+	}
 	if e != nil {
 		if service.errorResponse.Error.Message != "" {
 			e.SetMessage(service.errorResponse.Error.Message)
